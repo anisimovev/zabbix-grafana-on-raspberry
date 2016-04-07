@@ -44,7 +44,7 @@ mkdir -p $GOPATH
 cd $GOPATH
 go get github.com/grafana/grafana
 cd $GOPATH/src/github.com/grafana/grafana
-git checkout v2.6.0
+git checkout v3.0-beta2
 go run build.go setup    
 $GOPATH/bin/godep restore   
 npm install
