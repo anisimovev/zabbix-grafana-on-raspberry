@@ -30,7 +30,7 @@ gem install fpm
 ```
 Finally, install your `phantomjs` binary. For example :
 ```bash
-curl -L https://github.com/anisimovev/zabbix-grafana-on-raspberry/raw/master/node-v4.4.1-linux-armv7l.tar.xz
+curl -L https://github.com/anisimovev/zabbix-grafana-on-raspberry/raw/master/phantomjs_2.0.0_armhf.deb
 sudo dpkg -i /tmp/phantomjs_2.0.0_armhf.deb
 ```
 
