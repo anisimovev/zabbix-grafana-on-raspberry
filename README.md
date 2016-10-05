@@ -54,6 +54,7 @@ go run build.go setup
 $GOPATH/bin/godep restore   
 npm install
 npm install -g grunt-cli
+npm install node-sass
 cd $GOPATH/src/github.com/grafana/grafana
 ```
 Now, the fix for `phantomjs`.
