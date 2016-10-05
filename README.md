@@ -18,11 +18,11 @@ export PATH=/usr/local/go/bin:$PATH
 Install nodejs :
 ```bash
 cd /tmp
-curl -L https://nodejs.org/dist/v4.4.1/node-v4.4.1-linux-armv7l.tar.xz | tar xfJ  -                                                       && \
-mv -t /usr/local/bin     node-v4.4.1-linux-armv7l/bin/*
-mv -t /usr/local/include node-v4.4.1-linux-armv7l/include/*
-mv -t /usr/local/lib     node-v4.4.1-linux-armv7l/lib/*
-mv -t /usr/local/share   node-v4.4.1-linux-armv7l/share/*
+curl -L https://nodejs.org/dist/latest-v5.x/node-v5.12.0-linux-armv7l.tar.xz | tar xfJ  -                                                       && \
+mv -t /usr/local/bin     node-v5.12.0-linux-armv7l/bin/*
+mv -t /usr/local/include node-v5.12.0-linux-armv7l/include/*
+mv -t /usr/local/lib     node-v5.12.0-linux-armv7l/lib/*
+mv -t /usr/local/share   node-v5.12.0-linux-armv7l/share/*
 ```
 Install fpm :
 ```bash
@@ -30,7 +30,7 @@ gem install fpm
 ```
 Finally, install your `phantomjs` binary. For example :
 ```bash
-curl -L https://github.com/anisimovev/zabbix-grafana-on-raspberry/raw/master/phantomjs_2.0.0_armhf.deb
+wget https://github.com/anisimovev/zabbix-grafana-on-raspberry/raw/master/phantomjs_2.0.0_armhf.deb
 sudo dpkg -i /tmp/phantomjs_2.0.0_armhf.deb
 ```
 
