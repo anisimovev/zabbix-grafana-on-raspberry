@@ -30,8 +30,13 @@ gem install fpm
 ```
 Finally, install your `phantomjs` binary. For example :
 ```bash
-wget https://github.com/anisimovev/zabbix-grafana-on-raspberry/raw/master/phantomjs_2.0.0_armhf.deb
-sudo dpkg -i /tmp/phantomjs_2.0.0_armhf.deb
+wget http://security.debian.org/debian-security/pool/updates/main/i/icu/libicu48_4.8.1.1-12+deb7u5_armhf.deb
+ dpkg -i libicu48_4.8.1.1-12+deb7u5_armhf.deb
+
+git clone https://github.com/shabadoo75/phantomjs-2.1.1-raspberrypi-armv7
+cp phantomjs-2.1.1-raspberrypi-armv7/phantomjs /usr/bin/
+
+
 ```
 
 ### Build Grafana
