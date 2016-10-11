@@ -1,0 +1,245 @@
+sudo raspi-config
+
+sudo reboot
+
+sudo apt-get update && apt-get upgrade -y
+
+sudo apt-get install rpi-update 
+
+sudo rpi-update
+
+sudo reboot
+
+sudo groupadd zabbix && sudo useradd -g zabbix zabbix
+
+
+
+Рассмотрим, как с ними работать:
+
+echo ds3231 0x68 > /sys/class/i2c-adapter/i2c-1/new_device 
+регистрируем часы в системе
+
+Для работы с RTC в Linux существует утилита hwclock
+# hwclock -r — считать время, сохранённое в RTC
+# hwclock -s — синхронизировать время системы с временем RTC
+# hwclock -w — записать текущее системное время в RTC
+
+Таким образом, после того, как вы установите в системе точное время при помощи утилиты date (например date --set=”20140125 09:17:00”, если есть доступ к сети, то можно синхронизировать системное время с точным временем при помощи сетевой службы ntp — ntpd -gq), необходимо записать это время в RTC — 
+hwclock -w
+
+При каждой загрузке системы необходимо в качестве системного времени, устанавливать время, сохранённое в RTC.
+Для этого пропишите в /etc/rc.local перед exit0 следующие команды:
+echo ds3231 0x68 > /sys/class/i2c-adapter/i2c-1/new_device
+hwclock -s
+
+
+Опционально можно отключить синхронизацию системного времени через Интернет:
+sudo update-rc.d ntp disable
+
+
+
+
+-------------WIFI AP DHCP--------------
+sudo apt-get install dnsmasq hostapd
+
+sudo nano /etc/dhcpcd.conf
+denyinterfaces wlan0  
+
+sudo nano /etc/network/interfaces
+# interfaces(5) file used by ifup(8) and ifdown(8)
+
+# Please note that this file is written to be used with dhcpcd
+# For static IP, consult /etc/dhcpcd.conf and 'man dhcpcd.conf'
+
+# Include files from /etc/network/interfaces.d:
+source-directory /etc/network/interfaces.d
+
+auto lo
+iface lo inet loopback
+
+iface eth0 inet static
+        address 192.168.0.101
+        netmask 255.255.255.0
+        gateway 192.168.0.1
+
+        address 10.133.12.33
+        netmask 255.255.255.0
+        gateway 10.133.11.1
+
+allow-hotplug wlan0
+iface wlan0 inet static
+    address 10.133.11.1
+    netmask 255.255.255.0
+    network 10.133.11.0
+    broadcast 10.133.11.255
+
+#allow-hotplug wlan0
+#iface wlan0 inet manual
+#    wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+#allow-hotplug wlan1
+#iface wlan1 inet manual
+#    wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+
+
+sudo service dhcpcd restart
+sudo ifdown wlan0; sudo ifup wlan0
+sudo nano /etc/hostapd/hostapd.conf
+# This is the name of the WiFi interface we configured above
+interface=wlan0
+
+# Use the nl80211 driver with the brcmfmac driver
+driver=nl80211
+
+# This is the name of the network
+ssid=Pi3-AP
+
+# Use the 2.4GHz band
+hw_mode=g
+
+# Use channel 6
+channel=6
+
+# Enable 802.11n
+ieee80211n=1
+
+# Enable WMM
+wmm_enabled=1
+
+# Enable 40MHz channels with 20ns guard interval
+ht_capab=[HT40][SHORT-GI-20][DSSS_CCK-40]
+
+# Accept all MAC addresses
+macaddr_acl=0
+
+# Use WPA authentication
+auth_algs=1
+
+# Require clients to know the network name
+ignore_broadcast_ssid=0
+
+# Use WPA2
+wpa=2
+
+# Use a pre-shared key
+wpa_key_mgmt=WPA-PSK
+
+# The network passphrase
+wpa_passphrase=raspberry
+
+# Use AES, instead of TKIP
+rsn_pairwise=CCMP
+
+sudo /usr/sbin/hostapd /etc/hostapd/hostapd.conf
+sudo nano /etc/default/hostapd
+DAEMON_CONF="/etc/hostapd/hostapd.conf"
+
+sudo mv /etc/dnsmasq.conf /etc/dnsmasq.conf.orig  
+sudo nano /etc/dnsmasq.conf 
+interface=wlan0      # Use interface wlan0  
+listen-address=10.133.11.1 # Explicitly specify the address to listen on  
+bind-interfaces      # Bind to the interface to make sure we aren't sending things elsewhere  
+server=8.8.8.8       # Forward DNS requests to Google DNS  
+domain-needed        # Don't forward short names  
+bogus-priv           # Never forward addresses in the non-routed address spaces.  
+dhcp-range=10.133.11.50,10.133.11.150,12h # Assign IP addresses between 10.133.11.50 and 10.133.11.150 with a 12 hour lease time  
+
+sudo nano /etc/sysctl.conf
+net.ipv4.ip_forward=1
+
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE  
+sudo iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT  
+sudo iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT  
+
+sudo sh -c "iptables-save > /etc/iptables.ipv4.nat"
+sudo nano /etc/rc.local
+iptables-restore < /etc/iptables.ipv4.nat  
+
+sudo service hostapd start  
+sudo service dnsmasq start  
+--------------------------------------------------
+
+
+=============Zabbix Installation=======================
+
+-----------------Prerequisites----------------------
+
+sudo apt-get install build-essential snmp libiksemel-dev libssh2-1-dev libssh2-1 libopenipmi-dev libsnmp-dev libcurl4-gnutls-dev fping libxml2 libxml2-dev curl libcurl3-gnutls apache2 php5 libapache2-mod-php5 php5-gd php-net-socket php5-ldap php5-curl php5-mysql mysql-server mysql-client libmysqld-dev
+
+----------------------------------------------------
+
+cd /tmp
+
+
+sudo wget http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.2.1/zabbix-3.2.1.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fzabbix%2Ffiles%2FZABBIX%2520Latest%2520Stable%2F3.2.1%2F&ts=1475600681&use_mirror=netcologne
+http://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.2.1/zabbix-3.2.1.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fzabbix%2Ffiles%2FZABBIX%2520Latest%2520Stable%2F3.2.1%2F&ts=1476176861&use_mirror=heanet
+
+sudo mv zabbix-3.2.1.tar.gz?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fzabbix%2Ffiles%2FZABBIX%2520Latest%2520Stable%2F3.2.1%2F  zabbix-3.2.1.tar.gz | sudo tar -zxvf zabbix-3.2.1.tar.gz
+
+
+cd zabbix-3.2.1/
+sudo ./configure --enable-server --enable-agent --with-mysql --with-net-snmp \
+--with-libcurl --with-openipmi --with-ssh2 --with-libxml2 --enable-ipv6  \
+--with-openssl
+
+sudo make install
+
+sudo /etc/init.d/mysql restart
+
+sudo mysql -u root -praspberry
+
+create database zabbix character set utf8;
+
+grant all privileges on zabbix.* to zabbix@'localhost' identified by 'raspberry';
+
+exit
+
+sudo cat database/mysql/schema.sql | mysql -u zabbix -praspberry zabbix
+
+sudo cat database/mysql/images.sql | mysql -u zabbix -praspberry zabbix
+
+sudo cat database/mysql/data.sql | mysql -u zabbix -praspberry zabbix
+
+sudo nano /usr/local/etc/zabbix_server.conf
+
+DBHost=localhost
+DBName=zabbix
+DBUser=zabbix
+DBPassword=zabbix
+FpingLocation = /usr/bin/fping
+
+AllowRoot = 1
+User = root
+Timeout=30
+
+sudo cp misc/init.d/debian/zabbix-server /etc/init.d/ && sudo cp misc/init.d/debian/zabbix-agent /etc/init.d/
+
+sudo chmod 775 /etc/init.d/zabbix-server && sudo chmod 775 /etc/init.d/zabbix-agent
+
+sudo update-rc.d zabbix-server defaults && sudo update-rc.d zabbix-agent defaults
+
+sudo mkdir /var/www/html/zabbix	
+
+sudo cp -a frontends/php/* /var/www/html/zabbix/ && sudo chown -R www-data:www-data /var/www/html/zabbix/
+
+sudo /etc/init.d/zabbix-server start && sudo /etc/init.d/zabbix-agent start
+
+sudo nano /etc/php5/apache2/php.ini
+
+max_execution_time = 300
+max_input_time = 600
+post_max_size = 2G
+always_populate_raw_post_data = -1
+date.timezone = Europe/Moscow
+
+sudo /etc/init.d/apache2 restart
+
+sudo /usr/bin/download-mibs
+
+
+-----------------------RASPBERRY CORE TEMP-------------------------
+ITEM Zabbix agent
+
+vfs.file.regexp["/sys/class/thermal/thermal_zone0/temp","([0-9]+)",,,,"\1"]
+-------------------------------------------------------------------
